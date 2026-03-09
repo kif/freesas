@@ -86,9 +86,9 @@ class SASModel:
                     self.rfactor = float(line[43:56])
                 header.append(line)
         self.header = header
-        atom3 = numpy.array(atoms)
+        atom3 = numpy.array(atoms, dtype=numpy.float64)
         self.atoms = numpy.append(
-            atom3, numpy.ones((atom3.shape[0], 1), dtype="float"), axis=1
+            atom3, numpy.ones((atom3.shape[0], 1), dtype=numpy.float64), axis=1
         )
 
     def save(self, filename):
@@ -133,7 +133,7 @@ class SASModel:
             self.com = self.centroid()
 
         mol = self.atoms[:, 0:3] - self.com
-        self.inertensor = numpy.empty((3, 3), dtype="float")
+        self.inertensor = numpy.empty((3, 3), dtype=numpy.float64)
 
         for i in range(3):
             for j in range(i, 3):
@@ -151,7 +151,7 @@ class SASModel:
         if len(self.com) == 0:
             self.com = self.centroid()
 
-        trans = numpy.identity(4, dtype="float")
+        trans = numpy.identity(4, dtype=numpy.float64)
         trans[0:3, 3] = -self.com
         return trans
 
@@ -167,7 +167,7 @@ class SASModel:
         w, v = numpy.linalg.eigh(self.inertensor)
         mat = v[:, w.argsort()]
 
-        rot = numpy.zeros((4, 4), dtype="float")
+        rot = numpy.zeros((4, 4), dtype=numpy.float64)
         rot[3, 3] = 1
         rot[:3, :3] = mat.T
 
@@ -178,7 +178,7 @@ class SASModel:
             self.enantiomer = [-1, -1, -1]
             mirror = numpy.array(
                 [[-1, 0, 0, 0], [0, -1, 0, 0], [0, 0, -1, 0], [0, 0, 0, 1]],
-                dtype="float",
+                dtype=numpy.float64,
             )
             rot = numpy.dot(mirror, rot)
 
@@ -216,7 +216,7 @@ class SASModel:
                 + delta_expand(self.atoms[:, 1], self.atoms[:, 1]) ** 2
                 + delta_expand(self.atoms[:, 2], self.atoms[:, 2]) ** 2
             )
-            Rg = sqrt(D.sum() / 2.0) / size
+            Rg = sqrt(0.5 * D.sum()) / size
             Dmax = sqrt(D.max())
             d12 = (D.max() * numpy.eye(size) + D).min(axis=0).mean()
             fineness = sqrt(d12)
@@ -284,16 +284,12 @@ class SASModel:
                 + delta_expand(mol1z, mol2z) ** 2
             )
 
-            D = (
-                0.5
-                * (
-                    (1.0 / ((mol1.shape[0]) * other.fineness * other.fineness))
+            D = sqrt(0.5 * (
+                    (1.0 / ((mol1.shape[0]) * other.fineness ** 2))
                     * (d2.min(axis=1).sum())
-                    + (1.0 / ((mol2.shape[0]) * self.fineness * self.fineness))
-                    * (d2.min(axis=0)).sum()
-                )
-            ) ** 0.5
-            return D
+                    + (1.0 / ((mol2.shape[0]) * self.fineness ** 2))
+                    * (d2.min(axis=0)).sum()))
+            return float(D)
 
     def transform(self, param, symmetry, reverse=None):
         """
@@ -312,7 +308,7 @@ class SASModel:
                 [0, 0, symmetry[2], 0],
                 [0, 0, 0, 1],
             ],
-            dtype="float",
+            dtype=numpy.float64,
         )
         if not reverse:
             vect = numpy.array([param[0:3]])
