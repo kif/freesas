@@ -33,44 +33,74 @@ __copyright__ = "2020-2026 ESRF"
 __date__ = "09/03/2026"
 
 from collections import namedtuple
-from dataclasses import dataclass
 from typing import NamedTuple
 import numpy
 
 # Used in AutoRg
-RG_RESULT = namedtuple(
-    "RG_RESULT",
-    "Rg sigma_Rg I0 sigma_I0 start_point end_point quality aggregated",
-)
+class RG_RESULT(NamedTuple):
+    Rg: float|None=None
+    sigma_Rg: float|None=None
+    I0: float|None=None
+    sigma_I0: float|None=None
+    start_point: int|None=None
+    end_point: int|None=None
+    quality: float|None=None
+    aggregated: bool|None=None
+
+    def __repr__(self):
+        return f"Rg={self.Rg:6.4f}(±{self.sigma_Rg:6.4f}) I0={self.I0:6.4f}(±{self.sigma_I0:6.4f}) [{self.start_point}-{self.end_point}] {100.0 * self.quality:5.2f}% {'aggregated' if self.aggregated > 0.1 else ''}"
 
 
-def _RG_RESULT_repr(self):
-    return f"Rg={self.Rg:6.4f}(±{self.sigma_Rg:6.4f}) I0={self.I0:6.4f}(±{self.sigma_I0:6.4f}) [{self.start_point}-{self.end_point}] {100.0 * self.quality:5.2f}% {'aggregated' if self.aggregated > 0.1 else ''}"
+class FIT_RESULT(NamedTuple):
+    slope: float|None=None
+    sigma_slope: float|None=None
+    intercept: float|None=None
+    sigma_intercept: float|None=None
+    R: float|None=None
+    R2: float|None=None
+    chi2: float|None=None
+    RMSD: float|None=None
 
 
-RG_RESULT.__repr__ = _RG_RESULT_repr
+class RT_RESULT(NamedTuple):
+    Vc: float|None=None
+    sigma_Vc: float|None=None
+    Qr: float|None=None
+    sigma_Qr: float|None=None
+    mass: float|None=None
+    sigma_mass: float|None=None
 
-FIT_RESULT = namedtuple(
-    "FIT_RESULT",
-    "slope sigma_slope intercept sigma_intercept, R, R2, chi2, RMSD",
-)
-RT_RESULT = namedtuple("RT_RESULT", "Vc sigma_Vc Qr sigma_Qr mass sigma_mass")
+    def __repr__(self):
+        return f"Vc={self.Vc:6.4f}(±{self.sigma_Vc:6.4f}) Qr={self.Qr:6.4f}(±{self.sigma_Qr:6.4f}) mass={self.mass:6.4f}(±{self.sigma_mass:6.4f})"
 
-
-def _RT_RESULT_repr(self):
-    return f"Vc={self.Vc:6.4f}(±{self.sigma_Vc:6.4f}) Qr={self.Qr:6.4f}(±{self.sigma_Qr:6.4f}) mass={self.mass:6.4f}(±{self.sigma_mass:6.4f})"
-
-
-RT_RESULT.__repr__ = _RT_RESULT_repr
 
 # Used in BIFT
-RadiusKey = namedtuple("RadiusKey", "Dmax npt")
-PriorKey = namedtuple("PriorKey", "type npt")
-TransfoValue = namedtuple("TransfoValue", "transfo B sum_dia")
-EvidenceKey = namedtuple("EvidenceKey", "Dmax alpha npt")
-EvidenceResult = namedtuple(
-    "EvidenceResult", "evidence chi2r regularization radius density converged"
-)
+class RadiusKey(NamedTuple):
+    Dmax: float|None=None
+    npt: int|None=None
+
+class PriorKey(NamedTuple):
+    type: str=""
+    npt: int|None=None
+
+class TransfoValue(NamedTuple):
+    transfo: numpy.ndarray
+    B: numpy.ndarray
+    sum_dia: numpy.ndarray
+
+
+class EvidenceKey(NamedTuple):
+    Dmax: float
+    alpha: float
+    npt: int
+
+class EvidenceResult(NamedTuple):
+    evidence: float
+    chi2r: float
+    regularization: float
+    radius: float
+    density: float
+    converged: bool
 
 class StatsResult(NamedTuple):
     radius: numpy.ndarray|None = None

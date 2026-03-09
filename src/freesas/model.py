@@ -28,8 +28,8 @@ def delta_expand(vec1, vec2):
     :param vec1, vec2: 1d-array
     :return v1 - v2: difference for any element of v1 and v2 (i.e a 2D array)
     """
-    v1 = numpy.atleast_2d(v1).T
-    v2 = numpy.atleast_2d(v2)
+    v1 = numpy.atleast_2d(vec1).T
+    v2 = numpy.atleast_2d(vec2)
     return v1 - v2
 
 

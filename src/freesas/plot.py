@@ -547,7 +547,7 @@ def hplc_plot(
         ax.set_xlabel("Elution time (s)", fontsize=fontsize)
     else:
         timestamps = list(range(nbdata))
-        ax.plot(timestamps, ata, label="SAXS")
+        ax.plot(timestamps, data, label="SAXS")
         ax.set_xlabel("Elution (frame index)", fontsize=fontsize)
     ax.set_ylabel("Signal", fontsize=fontsize)
     ax.set_title(title)
