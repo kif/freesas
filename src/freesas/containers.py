@@ -3,7 +3,7 @@
 #    Project: freesas
 #             https://github.com/kif/freesas
 #
-#    Copyright (C) 2020  European Synchrotron Radiation Facility, Grenoble, France
+#    Copyright (C) 2020-2026  European Synchrotron Radiation Facility, Grenoble, France
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -24,15 +24,17 @@
 # THE SOFTWARE.
 
 """
-Set of namedtuples defined a bit everywhere
+Set of namedtuples/dataclasses defined a bit everywhere
 """
 
 __authors__ = ["Jérôme Kieffer"]
 __license__ = "MIT"
-__copyright__ = "2020 ESRF"
-__date__ = "13/10/2020"
+__copyright__ = "2020-2026 ESRF"
+__date__ = "09/03/2026"
 
 from collections import namedtuple
+from dataclasses import dataclass
+from typing import NamedTuple
 import numpy
 
 # Used in AutoRg
@@ -70,38 +72,83 @@ EvidenceResult = namedtuple(
     "EvidenceResult", "evidence chi2r regularization radius density converged"
 )
 
-StatsResult = namedtuple(
-    "StatsResult",
-    "radius density_avg density_std evidence_avg evidence_std Dmax_avg Dmax_std alpha_avg, alpha_std chi2r_avg chi2r_std regularization_avg regularization_std Rg_avg Rg_std I0_avg I0_std",
-)
+class StatsResult(NamedTuple):
+    radius: numpy.ndarray|None = None
+    density_avg: numpy.ndarray|None = None
+    density_std: numpy.ndarray|None = None
+    evidence_avg: float|None = None
+    evidence_std: float|None = None
+    Dmax_avg: float|None = None
+    Dmax_std: float|None = None
+    alpha_avg: float|None = None
+    alpha_std: float|None = None
+    chi2r_avg: float|None = None
+    chi2r_std: float|None = None
+    regularization_avg: float|None = None
+    regularization_std: float|None = None
+    Rg_avg: float|None = None
+    Rg_std: float|None = None
+    I0_avg: float|None = None
+    I0_std: float|None = None
 
+    def save(self, filename, source=None):
+        "Save the results of the fit to the file"
+        res = [
+            f"Dmax= {self.Dmax_avg:.2f}±{self.Dmax_std:.2f}",
+            f"𝛂= {self.alpha_avg:.1f}±{self.alpha_std:.1f}",
+            f"S₀= {self.regularization_avg:.4f}±{self.regularization_std:.4f}",
+            f"χ²= {self.chi2r_avg:.2f}±{self.chi2r_std:.2f}",
+            f"logP= {self.evidence_avg:.2f}±{self.evidence_std:.2f}",
+            f"Rg= {self.Rg_avg:.2f}±{self.Rg_std:.2f}",
+            f"I₀= {self.I0_avg:.2f}±{self.I0_std:.2f}",
+        ]
+        with open(filename, "wt", encoding="utf-8") as out:
+            out.write("# %s %s" % (source or filename, "\n"))
+            for txt in res:
+                out.write(f"# {txt} \n")
+            out.write("\n# r\tp(r)\tsigma_p(r)\n")
+            for r, p, s in zip(
+                self.radius.astype(numpy.float32),
+                self.density_avg.astype(numpy.float32),
+                self.density_std.astype(numpy.float32),
+            ):
+                out.write("%s\t%s\t%s%s" % (r, p, s, "\n"))
+        return filename + ": " + "; ".join(res)
 
-def save_bift(stats, filename, source=None):
-    "Save the results of the fit to the file"
-    res = [
-        "Dmax= %.2f±%.2f" % (stats.Dmax_avg, stats.Dmax_std),
-        "𝛂= %.1f±%.1f" % (stats.alpha_avg, stats.alpha_std),
-        "S₀= %.4f±%.4f" % (stats.regularization_avg, stats.regularization_std),
-        "χ²= %.2f±%.2f" % (stats.chi2r_avg, stats.chi2r_std),
-        "logP= %.2f±%.2f" % (stats.evidence_avg, stats.evidence_std),
-        "Rg= %.2f±%.2f" % (stats.Rg_avg, stats.Rg_std),
-        "I₀= %.2f±%.2f" % (stats.I0_avg, stats.I0_std),
-    ]
-    with open(filename, "wt", encoding="utf-8") as out:
-        out.write("# %s %s" % (source or filename, "\n"))
-        for txt in res:
-            out.write("# %s %s" % (txt, "\n"))
-        out.write("%s# r\tp(r)\tsigma_p(r)%s" % ("\n", "\n"))
-        for r, p, s in zip(
-            stats.radius.astype(numpy.float32),
-            stats.density_avg.astype(numpy.float32),
-            stats.density_std.astype(numpy.float32),
-        ):
-            out.write("%s\t%s\t%s%s" % (r, p, s, "\n"))
-    return filename + ": " + "; ".join(res)
-
-
-StatsResult.save = save_bift
 
 # Used in Cormap
 GOF = namedtuple("GOF", ["n", "c", "P"])
+
+
+class UVJuice(NamedTuple):
+    """All information of an UV-file"""
+    wavelengths: numpy.ndarray
+    timestamps: numpy.ndarray
+    absorbance: numpy.ndarray
+
+    @classmethod
+    def from_file(cls, filename):
+        """Create dataclass from filename
+
+        :param filename: name or Path of the .dat file to read & parse
+        :return: dataclass instance
+        """
+        with open(filename) as fd:
+            header = fd.readline()
+        keys = [k.strip() for k in header.split("|")]
+        raw = numpy.loadtxt(filename, skiprows=1, delimiter="|", unpack=True)
+        nb_time = raw.shape[1]
+        nb_wl = raw.shape[0] // 3
+        absorbance = numpy.empty((nb_wl, nb_time))
+        timestamps = numpy.empty(nb_time)
+        wavelengths = numpy.empty(nb_wl)
+        for i,k in enumerate(keys):
+            if k=="T0":
+                timestamps = raw[i]
+            elif k.startswith("w"):
+                j = int(k[1])
+                wavelengths[j] = raw[i,0]
+            elif k.startswith("ABS"):
+                j = int(k[3])
+                absorbance[j] = raw[i]
+        return cls(wavelengths, timestamps, absorbance)
