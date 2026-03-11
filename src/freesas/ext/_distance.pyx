@@ -17,7 +17,7 @@ from cython cimport floating
 from libc.math cimport sqrt, fabs, exp
 
 
-def calc_invariants(double[:, ::1] atoms):
+def calc_invariants(double[:, :] atoms):
     """
     Calculate the invariants of the structure, i.e fineness, radius of gyration and diameter of the model.
 
